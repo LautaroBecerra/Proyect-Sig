@@ -1,11 +1,13 @@
 import express from "express";
 import pool from "./src/config/postgresql";
-import "dotenv/config";
+import dotenv from "dotenv";
+
 
 const app = express();
+dotenv.config();
 
-app.get("/test", async (req, res) => {
-  const result = await pool.query("SELECT NOW()");
+app.get("/users", async (req, res) => {
+  const result = await pool.query("SELECT * FROM users");
   res.json(result.rows);
 });
 

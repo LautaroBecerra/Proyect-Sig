@@ -11,6 +11,6 @@
     "ts-node-dev": "^2.0.0",
     "typescript": "^6.0.3"
   },"scripts": {
-  "dev": "ts-node-dev --respawn --transpile-only src/app.ts"
+  "dev": "ts-node-dev --respawn --transpile-only app.ts"
  }
 }
