@@ -1,5 +1,5 @@
 import express from "express";
-import pool from "./src/db";
+import pool from "./src/config/postgresql";
 import "dotenv/config";
 
 const app = express();
