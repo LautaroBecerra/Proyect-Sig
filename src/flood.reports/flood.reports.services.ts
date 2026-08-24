@@ -1,6 +1,6 @@
 import {CreateFloodReport, UpdateFloodReport} from "./flood.reports.interface";
 
-import { FloodReportRepository } from ".flood.repots.repository";
+import { FloodReportRepository } from "./flood.reports.repository";
 
 export class FloodReportService {
 

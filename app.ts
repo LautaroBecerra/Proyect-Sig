@@ -1,7 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 
-import floodReportsRouter from "./src/flood.reports/flood,reports.router";
+import floodReportsRouter from "./src/flood.reports/flood.reports.router";
 import pool from "./src/config/postgresql";
 
 dotenv.config();
