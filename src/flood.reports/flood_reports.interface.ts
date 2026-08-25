@@ -7,3 +7,4 @@ export interface FloodReport {
   created_at: Date;
   updated_at: Date;
 }
+
