@@ -1,3 +1,4 @@
+import dotenv from "dotenv";
 import { Pool } from "pg";
 
 const pool = new Pool({
@@ -10,10 +11,10 @@ const pool = new Pool({
 
 export default pool;
 
-pool.connect()  
+pool.connect()
   .then(() => {
-    console.log("Connected to PostgreSQL")
+    console.log("Connected to PostgreSQL");
   })
   .catch((err) => {
-    console.error("Connection error", err.stack)
+    console.error("Connection error", err.stack);
   });
