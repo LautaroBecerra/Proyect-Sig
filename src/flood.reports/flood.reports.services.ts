@@ -2,6 +2,8 @@ import {CreateFloodReport, UpdateFloodReport} from "./flood.reports.interface";
 
 import { FloodReportRepository } from "./flood.reports.repository";
 
+import {validateIncidentType, validateWaterDepthRange, validateProblemPersists, validateEvacuation, validateWorkAffected, validateServicesAffected, validateAssistanceNeeded} from "./flood.reports.validation";
+
 export class FloodReportService {
 
     private repository: FloodReportRepository;
@@ -65,9 +67,22 @@ export class FloodReportService {
             throw new Error("Invalid longitude");
         }
 
+        validateIncidentType(data.incident_type);
+
+        validateWaterDepthRange(data.water_depth_range);
+
+        validateProblemPersists(data.problem_persists);
+
+        validateEvacuation(data.evacuation);
+
+        validateWorkAffected(data.work_affected);
+
+        validateServicesAffected(data.services_affected);
+
+        validateAssistanceNeeded(data.assistance_needed);
+
         return await this.repository.create(data);
     }
-
     // Actualizar
     async updateReport(
         id: number,

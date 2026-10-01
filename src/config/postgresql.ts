@@ -1,6 +1,5 @@
 import dotenv from "dotenv";
 import { Pool } from "pg";
-import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -13,21 +12,12 @@ const pool = new Pool({
 });
 
 pool.connect()
-    .then(() => {
-        console.log("Connected to PostgreSQL");
-    })
-    .catch((err) => {
-        console.error("Connection error", err);
-    });
-
-<<<<<<< HEAD
-pool.connect()
   .then(() => {
     console.log("Connected to PostgreSQL");
   })
   .catch((err) => {
     console.error("Connection error", err.stack);
   });
-=======
+
 export default pool;
->>>>>>> Crud-flood.repots
+
