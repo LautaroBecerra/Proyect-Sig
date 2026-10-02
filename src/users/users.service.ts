@@ -1,4 +1,4 @@
-import bcrypt from "bcrypt"
+import bcrypt from "bcrypt";
 import { UserRepository } from "./users.repository";
 import { CreateUserDto } from "./dto/create.user.dto";
 import { UpdateUserDto } from "./dto/update.user.dto";
@@ -31,87 +31,94 @@ export class UserService {
 
     async createUser(data: CreateUserDto) {
 
-    if (!data.username) {
-        throw new Error("username is required");
-    }
+        if (!data.username) {
+            throw new Error("username is required");
+        }
 
-    if (!data.email) {
-        throw new Error("email is required");
-    }
+        if (!data.email) {
+            throw new Error("email is required");
+        }
 
-    if (!data.password) {
-        throw new Error("password is required");
-    }
+        if (!data.password && !data.google_id) {
+            throw new Error(
+                "password or google_id is required"
+            );
+        }
 
-    const existingUser = await this.repository.findByEmail(
-        data.email
-    );
-
-    if (existingUser) {
-        throw new Error("Email already registered");
-    }
-
-    const hashedPassword = await bcrypt.hash(
-        data.password,
-        10
-    );
-
-    const userData: CreateUserDto = {
-        ...data,
-        password: hashedPassword
-    };
-
-    const user = await this.repository.create(userData);
-
-    return this.toResponse(user);
-}
-
-    async updateUser(
-    id: number,
-    data: UpdateUserDto
-) {
-    let userData = data;
-
-    if (data.password) {
-        const hashedPassword = await bcrypt.hash(
-            data.password,
-            10
+        const existingUser = await this.repository.findByEmail(
+            data.email
         );
 
-        userData = {
+        if (existingUser) {
+            throw new Error("Email already registered");
+        }
+
+        let hashedPassword: string | null = null;
+
+        if (data.password) {
+            hashedPassword = await bcrypt.hash(
+                data.password,
+                10
+            );
+        }
+
+        const userData: CreateUserDto = {
             ...data,
             password: hashedPassword
         };
+
+        const user = await this.repository.create(userData);
+
+        return this.toResponse(user);
     }
 
-    const user = await this.repository.update(
-        id,
-        userData
-    );
+    async updateUser(
+        id: number,
+        data: UpdateUserDto
+    ) {
+        let userData = data;
 
-    if (!user) {
-        throw new Error("User not found");
-    }
+        if (data.password) {
+            const hashedPassword = await bcrypt.hash(
+                data.password,
+                10
+            );
 
-    return this.toResponse(user);
+            userData = {
+                ...data,
+                password: hashedPassword
+            };
+        }
+
+        const user = await this.repository.update(
+            id,
+            userData
+        );
+
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        return this.toResponse(user);
     }
 
     async deleteUser(id: number) {
-    const deleted = await this.repository.delete(id);
+        const deleted = await this.repository.delete(id);
 
-    if (!deleted) {
-        throw new Error("User not found");
+        if (!deleted) {
+            throw new Error("User not found");
+        }
+
+        return true;
     }
 
-    return true;
-}
-
     private toResponse(user: User): UserResponseDto {
-    return {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        created_at: user.created_at
-    };
-}
+        return {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            google_id: user.google_id,
+            created_at: user.created_at
+        };
+    }
 }

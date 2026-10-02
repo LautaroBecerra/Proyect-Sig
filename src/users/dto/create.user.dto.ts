@@ -1,5 +1,6 @@
 export interface CreateUserDto {
     username: string;
     email: string;
-    password: string;
+    password?: string | null;
+    google_id?: string | null;
 }
