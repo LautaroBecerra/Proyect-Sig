@@ -1,8 +1,8 @@
+import { AppError } from "../utils/AppError";
 import {CreateFloodReport, UpdateFloodReport} from "./flood.reports.interface";
-
 import { FloodReportRepository } from "./flood.reports.repository";
+import {validateIncidentType, validateWaterDepthRange, validateProblemPersists, validateEvacuation, validateWorkAffected, validateServicesAffected, validateAssistanceNeeded, validateLatitude, validateLongitude, validateDescription, validateSeverity} from "./flood.reports.validation";
 
-import {validateIncidentType, validateWaterDepthRange, validateProblemPersists, validateEvacuation, validateWorkAffected, validateServicesAffected, validateAssistanceNeeded} from "./flood.reports.validation";
 
 export class FloodReportService {
 
@@ -24,7 +24,7 @@ export class FloodReportService {
         const report = await this.repository.findById(id);
 
         if (!report) {
-            throw new Error("Flood report not found");
+            throw new AppError("Flood report not found", 404);
         }
 
         return report;
@@ -38,34 +38,29 @@ export class FloodReportService {
 
     // Crear
     async createReport(
+        userId: number,
         data: CreateFloodReport
     ) {
 
-        if (!data.user_id) {
-            throw new Error("user_id is required");
+        if (!userId) {
+            throw new AppError("User authentication required", 401);
         }
 
         if (data.latitude === undefined) {
-            throw new Error("latitude is required");
+            throw new AppError("latitude is required", 400);
         }
 
         if (data.longitude === undefined) {
-            throw new Error("longitude is required");
+            throw new AppError("longitude is required", 400);
         }
 
-        if (
-            data.latitude < -90 ||
-            data.latitude > 90
-        ) {
-            throw new Error("Invalid latitude");
-        }
+        validateLatitude(data.latitude);
 
-        if (
-            data.longitude < -180 ||
-            data.longitude > 180
-        ) {
-            throw new Error("Invalid longitude");
-        }
+        validateLongitude(data.longitude);
+
+        validateDescription(data.description);
+
+        validateSeverity(data.severity);
 
         validateIncidentType(data.incident_type);
 
@@ -81,21 +76,82 @@ export class FloodReportService {
 
         validateAssistanceNeeded(data.assistance_needed);
 
-        return await this.repository.create(data);
+        return await this.repository.create(userId, data);
     }
     // Actualizar
-    async updateReport(
+async updateReport(
+    id: number,
+    data: UpdateFloodReport
+) {
+    if (data.latitude !== undefined) {
+        validateLatitude(data.latitude);
+    }
+
+    if (data.longitude !== undefined) {
+        validateLongitude(data.longitude);
+    }
+
+    if (data.description !== undefined) {
+        validateDescription(data.description);
+    }
+
+    if (data.severity !== undefined) {
+        validateSeverity(data.severity);
+    }
+
+    if (data.incident_type !== undefined) {
+        validateIncidentType(data.incident_type);
+    }
+
+    if (data.water_depth_range !== undefined) {
+        validateWaterDepthRange(data.water_depth_range);
+    }
+
+    if (data.problem_persists !== undefined) {
+        validateProblemPersists(data.problem_persists);
+    }
+
+    if (data.evacuation !== undefined) {
+        validateEvacuation(data.evacuation);
+    }
+
+    if (data.work_affected !== undefined) {
+        validateWorkAffected(data.work_affected);
+    }
+
+    if (data.services_affected !== undefined) {
+        validateServicesAffected(data.services_affected);
+    }
+
+    if (data.assistance_needed !== undefined) {
+        validateAssistanceNeeded(data.assistance_needed);
+    }
+
+    const report = await this.repository.update(
+        id,
+        data
+    );
+
+    if (!report) {
+        throw new AppError("Flood report not found", 404);
+    }
+
+    return report;
+}
+
+    // Actualizar estado del reporte (solo admin)
+    async updateReportStatus(
         id: number,
-        data: UpdateFloodReport
+        status: "aprobado" | "rechazado"
     ) {
 
-        const report = await this.repository.update(
+        const report = await this.repository.updateStatus(
             id,
-            data
+            status
         );
 
         if (!report) {
-            throw new Error("Flood report not found");
+            throw new AppError("Flood report not found", 404);
         }
 
         return report;
@@ -108,7 +164,7 @@ export class FloodReportService {
             await this.repository.delete(id);
 
         if (!deleted) {
-            throw new Error("Flood report not found");
+            throw new AppError("Flood report not found", 404);
         }
 
         return true;

@@ -1,3 +1,5 @@
+import { AppError } from "../utils/AppError";
+
 export const validIncidentTypes = [
     "Calle con agua",
     "Calle cortada",
@@ -48,7 +50,10 @@ export function validateIncidentType(
         incidentType &&
         !validIncidentTypes.includes(incidentType)
     ) {
-        throw new Error("Invalid incident_type");
+        throw new AppError(
+            "Invalid incident_type",
+            400
+        );
     }
 }
 
@@ -59,7 +64,10 @@ export function validateWaterDepthRange(
         waterDepthRange &&
         !validWaterDepthRanges.includes(waterDepthRange)
     ) {
-        throw new Error("Invalid water_depth_range");
+        throw new AppError(
+            "Invalid water_depth_range",
+            400
+        );
     }
 }
 
@@ -71,7 +79,10 @@ export function validateProblemPersists(
         problemPersists !== null &&
         typeof problemPersists !== "boolean"
     ) {
-        throw new Error("problem_persists must be a boolean");
+        throw new AppError(
+            "problem_persists must be a boolean",
+            400
+        );
     }
 }
 
@@ -82,7 +93,10 @@ export function validateEvacuation(
         evacuation &&
         !validEvacuationOptions.includes(evacuation)
     ) {
-        throw new Error("Invalid evacuation option");
+        throw new AppError(
+            "Invalid evacuation option",
+            400
+        );
     }
 }
 
@@ -93,7 +107,10 @@ export function validateWorkAffected(
         workAffected &&
         !validWorkAffectedOptions.includes(workAffected)
     ) {
-        throw new Error("Invalid work_affected option");
+        throw new AppError(
+            "Invalid work_affected option",
+            400
+        );
     }
 }
 
@@ -104,12 +121,22 @@ export function validateServicesAffected(
         return;
     }
 
+    if (!Array.isArray(servicesAffected)) {
+        throw new AppError(
+            "services_affected must be an array",
+            400
+        );
+    }
+
     const invalidService = servicesAffected.find(
         service => !validServices.includes(service)
     );
 
     if (invalidService) {
-        throw new Error("Invalid services_affected option");
+        throw new AppError(
+            "Invalid services_affected option",
+            400
+        );
     }
 }
 
@@ -120,11 +147,103 @@ export function validateAssistanceNeeded(
         return;
     }
 
+    if (!Array.isArray(assistanceNeeded)) {
+        throw new AppError(
+            "assistance_needed must be an array",
+            400
+        );
+    }
+
     const invalidAssistance = assistanceNeeded.find(
         assistance => !validAssistance.includes(assistance)
     );
 
     if (invalidAssistance) {
-        throw new Error("Invalid assistance_needed option");
+        throw new AppError(
+            "Invalid assistance_needed option",
+            400
+        );
+    }
+}
+
+export function validateLatitude(
+    latitude: number | null | undefined
+) {
+    if (
+        latitude !== undefined &&
+        latitude !== null &&
+        typeof latitude !== "number"
+    ) {
+        throw new AppError(
+            "Invalid latitude",
+            400
+        );
+    }
+
+    if (
+        latitude !== undefined &&
+        latitude !== null &&
+        (latitude < -90 || latitude > 90)
+    ) {
+        throw new AppError(
+            "Invalid latitude",
+            400
+        );
+    }
+}
+
+export function validateLongitude(
+    longitude: number | null | undefined
+) {
+    if (
+        longitude !== undefined &&
+        longitude !== null &&
+        typeof longitude !== "number"
+    ) {
+        throw new AppError(
+            "Invalid longitude",
+            400
+        );
+    }
+
+    if (
+        longitude !== undefined &&
+        longitude !== null &&
+        (longitude < -180 || longitude > 180)
+    ) {
+        throw new AppError(
+            "Invalid longitude",
+            400
+        );
+    }
+}
+
+export function validateDescription(
+    description: string | null | undefined
+) {
+    if (
+        description !== undefined &&
+        description !== null &&
+        typeof description !== "string"
+    ) {
+        throw new AppError(
+            "Description must be a string",
+            400
+        );
+    }
+}
+
+export function validateSeverity(
+    severity: string | null | undefined
+) {
+    if (
+        severity !== undefined &&
+        severity !== null &&
+        typeof severity !== "string"
+    ) {
+        throw new AppError(
+            "Severity must be a string",
+            400
+        );
     }
 }

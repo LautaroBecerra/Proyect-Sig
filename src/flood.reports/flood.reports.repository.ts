@@ -95,7 +95,7 @@ export class FloodReportRepository {
     }
 
     // Crear reporte
-    async create(data: CreateFloodReport): Promise<FloodReport> {
+    async create(userId: number,data: CreateFloodReport): Promise<FloodReport> {
 
         const result = await pool.query(
             `
@@ -135,7 +135,7 @@ export class FloodReportRepository {
                 created_at
             `,
             [
-                data.user_id,
+                userId,
                 data.latitude,
                 data.longitude,
                 data.description ?? null,
@@ -211,6 +211,41 @@ export class FloodReportRepository {
         return result.rows[0] || null;
     }
 
+    // Actualizar estado del reporte (solo admin)
+    async updateStatus(
+        id: number,
+        status: "aprobado" | "rechazado"
+    ): Promise<FloodReport | null> {
+
+        const result = await pool.query(
+            `
+            UPDATE flood_reports
+            SET status = $1
+            WHERE id = $2
+            RETURNING
+                id,
+                user_id,
+                latitude,
+                longitude,
+                description,
+                severity,
+                incident_type,
+                water_depth_range,
+                problem_persists,
+                evacuation,
+                work_affected,
+                services_affected,
+                assistance_needed,
+                status,
+                created_at
+            `,
+            [status, id]
+        );
+
+        return result.rows[0] || null;
+    }
+    
+    
     // Eliminar reporte
     async delete(id: number): Promise<boolean> {
 

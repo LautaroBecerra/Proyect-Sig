@@ -22,7 +22,6 @@ export interface FloodReport {
 }
 
 export interface CreateFloodReport {
-    user_id: number;
     latitude: number;
     longitude: number;
     description?: string | null;
@@ -53,5 +52,4 @@ export interface UpdateFloodReport {
     services_affected?: string[] | null;
     assistance_needed?: string[] | null;
 
-    status?: 'pendiente' | 'aprobado' | 'rechazado';
 }

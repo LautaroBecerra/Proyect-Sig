@@ -14,6 +14,7 @@ export class UserRepository {
                 email,
                 password,
                 google_id,
+                role,
                 created_at
             FROM users
             ORDER BY id ASC
@@ -32,6 +33,7 @@ export class UserRepository {
                 email,
                 password,
                 google_id,
+                role,
                 created_at
             FROM users
             WHERE id = $1
@@ -51,6 +53,7 @@ export class UserRepository {
                 email,
                 password,
                 google_id,
+                role,
                 created_at
             FROM users
             WHERE email = $1
@@ -70,6 +73,7 @@ export class UserRepository {
                 email,
                 password,
                 google_id,
+                role,
                 created_at
             FROM users
             WHERE google_id = $1
@@ -96,6 +100,7 @@ export class UserRepository {
                 email,
                 password,
                 google_id,
+                role,
                 created_at
             `,
             [
@@ -129,6 +134,7 @@ export class UserRepository {
                 email,
                 password,
                 google_id,
+                role,
                 created_at
             `,
             [

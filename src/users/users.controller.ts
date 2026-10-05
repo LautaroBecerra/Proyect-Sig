@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { UserService } from "./users.service";
+import { AuthRequest } from "../auth/auth.middleware";
 
 export class UserController {
 
@@ -28,26 +29,48 @@ export class UserController {
         }
     };
 
-    getUserById = async (req: Request, res: Response) => {
-        try {
-            const id = Number(req.params.id);
-
-            const user = await this.service.getUserById(id);
-
-            res.json({
-                success: true,
-                data: user
-            });
-
-        } catch (error) {
-            res.status(404).json({
+    getUserById = async (req: AuthRequest, res: Response) => {
+    try {
+        const id = Number(req.params.id);
+        
+        if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).json({
                 success: false,
-                message: error instanceof Error
-                    ? error.message
-                    : "User not found"
+                message: "Invalid user id"
             });
         }
-    };
+
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication required"
+            });
+        }
+
+        if (req.user.role !== "admin" && req.user.id !== id) {
+            return res.status(403).json({
+                success: false,
+                message: "You can only access your own user"
+            });
+        }
+
+        const user = await this.service.getUserById(id);
+
+        res.json({
+            success: true,
+            data: user
+        });
+
+    } catch (error) {
+        res.status(404).json({
+            success: false,
+            message: error instanceof Error
+                ? error.message
+                : "User not found"
+        });
+    }
+};
+
 
     createUser = async (req: Request, res: Response) => {
         try {
@@ -69,34 +92,62 @@ export class UserController {
         }
     };
 
-    updateUser = async (req: Request, res: Response) => {
-        try {
-            const id = Number(req.params.id);
+    updateUser = async (req: AuthRequest, res: Response) => {
+    try {
+        const id = Number(req.params.id);
 
-            const user = await this.service.updateUser(
-                id,
-                req.body
-            );
-
-            res.json({
-                success: true,
-                message: "User updated successfully",
-                data: user
-            });
-
-        } catch (error) {
-            res.status(404).json({
+        if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).json({
                 success: false,
-                message: error instanceof Error
-                    ? error.message
-                    : "Error updating user"
+                message: "Invalid user id"
             });
         }
-    };
+
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication required"
+            });
+        }
+
+        if (req.user.role !== "admin" && req.user.id !== id) {
+            return res.status(403).json({
+                success: false,
+                message: "You can only update your own user"
+            });
+        }
+
+        const user = await this.service.updateUser(
+            id,
+            req.body
+        );
+
+        res.json({
+            success: true,
+            message: "User updated successfully",
+            data: user
+        });
+
+    } catch (error) {
+        res.status(404).json({
+            success: false,
+            message: error instanceof Error
+                ? error.message
+                : "Error updating user"
+        });
+    }
+};
 
     deleteUser = async (req: Request, res: Response) => {
         try {
             const id = Number(req.params.id);
+
+         if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid user id"
+            });
+        }
 
             await this.service.deleteUser(id);
 
