@@ -31,4 +31,27 @@ export class AuthController {
 
         }
     };
+
+        loginGoogle = async (req: Request, res: Response) => {
+        try {
+
+            const result = await this.service.loginGoogle(req.body);
+
+            res.json({
+                success: true,
+                message: "Google login successful",
+                data: result
+            });
+
+        } catch (error) {
+
+            res.status(401).json({
+                success: false,
+                message: error instanceof Error
+                    ? error.message
+                    : "Invalid Google credential"
+            });
+
+        }
+    };
 }

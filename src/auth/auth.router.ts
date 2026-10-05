@@ -8,6 +8,8 @@ const controller = new AuthController();
 
 router.post("/login", controller.login);
 
+router.post("/login/google", controller.loginGoogle);
+
 router.get(
     "/me",
     authMiddleware,
