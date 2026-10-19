@@ -91,7 +91,7 @@ export class AuthService {
     if (!secret) {
         throw new Error("JWT_SECRET is not configured");
     }
-
+    
     const token = jwt.sign(
         {
             id: user.id,
