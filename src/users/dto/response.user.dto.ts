@@ -3,5 +3,6 @@ export interface UserResponseDto {
     username: string;
     email: string;
     google_id: string | null;
+    role: 'user' | 'admin';
     created_at: Date;
 }

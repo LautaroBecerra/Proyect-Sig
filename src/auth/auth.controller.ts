@@ -31,4 +31,31 @@ export class AuthController {
 
         }
     };
+
+    register = async (req: Request, res: Response) => {
+        try {
+           
+            const result = await this.service.register(req.body);
+
+            res.status(201).json({
+                success: true,
+                message: "Registration successful",
+                data: result
+            });
+        } catch (error) {
+            const message = error instanceof Error
+                ? error.message
+                : "Registration failed";
+
+            const status = message === "Email already registered"
+                ? 409
+                : 400;
+
+            res.status(status).json({
+                success: false,
+                message
+            });
+        }
+    };
+
 }

@@ -118,6 +118,7 @@ export class UserService {
             username: user.username,
             email: user.email,
             google_id: user.google_id,
+            role: user.role,
             created_at: user.created_at
         };
     }
