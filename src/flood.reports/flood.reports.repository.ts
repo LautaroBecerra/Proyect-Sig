@@ -33,6 +33,30 @@ export class FloodReportRepository {
         return result.rows;
     }
 
+    // Obtener reportes aprobados para el mapa público
+    async findApproved(): Promise<FloodReport[]> {
+        const result = await pool.query(
+            `
+            SELECT
+            id,
+            latitude,
+            longitude,
+            description,
+            severity,
+            incident_type,
+            water_depth_range,
+            problem_persists,
+            status,
+            created_at
+            FROM flood_reports
+            WHERE status = 'aprobado'
+            ORDER BY created_at DESC
+            `
+        );
+
+        return result.rows;
+     }   
+
     // Obtener un reporte por ID
     async findById(id: number): Promise<FloodReport | null> {
 

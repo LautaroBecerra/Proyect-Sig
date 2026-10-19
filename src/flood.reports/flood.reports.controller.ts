@@ -5,7 +5,7 @@ import {CreateFloodReport, UpdateFloodReport} from "./flood.reports.interface";
 import { FloodReportService } from "./flood.reports.services";
 
 export class FloodReportController {
-
+    
     private service: FloodReportService;
 
     constructor() {
@@ -35,6 +35,26 @@ export class FloodReportController {
             return res.status(500).json({
                 success: false,
                 message: "Error getting flood reports"
+            });
+        }
+    };
+
+    // GET /api/flood-reports/public
+    getApprovedReports = async (_req: Request, res: Response) => {
+        console.log("ENTRÓ A getApprovedReports");
+        try {
+            const reports = await this.service.getApprovedReports();
+
+            return res.status(200).json({
+            success: true,
+            data: reports
+            });
+        } catch (error) {
+            console.error(error);
+
+            return res.status(500).json({
+            success: false,
+            message: "Error getting approved flood reports"
             });
         }
     };
@@ -112,7 +132,6 @@ export class FloodReportController {
     ) => {
 
         try {
-
             if (!req.user) {
                 return res.status(401).json({
                     success: false,
@@ -203,23 +222,13 @@ export class FloodReportController {
     }
     };
 
+
     // PUT /api/flood-reports/:id
     updateReport = async (
         req: AuthRequest,
         res: Response
     ) => {
-
         try {
-
-            const id = Number(req.params.id);
-
-            if (isNaN(id)) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Invalid report id"
-                });
-            }
-
             if (!req.user) {
                 return res.status(401).json({
                     success: false,
@@ -227,23 +236,37 @@ export class FloodReportController {
                 });
             }
 
-            const existingReport = await this.service.getReportById(id);
+            const id = Number(req.params.id);
 
-            if (req.user.role !== "admin" && existingReport.user_id !== req.user.id) {
+            if (!Number.isInteger(id) || id <= 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid report id"
+                });
+            }
+
+            // Buscar el reporte existente
+            const existingReport =
+                await this.service.getReportById(id);
+
+            // El administrador puede editar cualquiera.
+            // El usuario común solo puede editar el suyo.
+            if (
+                req.user.role !== "admin" &&
+                existingReport.user_id !== req.user.id
+            ) {
                 return res.status(403).json({
                     success: false,
                     message: "You can only modify your own reports"
                 });
             }
 
-            const data: UpdateFloodReport =
-                req.body;
+            const data: UpdateFloodReport = req.body;
 
-            const report =
-                await this.service.updateReport(
-                    id,
-                    data
-                );
+            const report = await this.service.updateReport(
+                id,
+                data
+            );
 
             return res.status(200).json({
                 success: true,
@@ -251,13 +274,9 @@ export class FloodReportController {
                 data: report
             });
 
-        } catch (error: any) {
-
-            if (
-                error.message ===
-                "Flood report not found"
-            ) {
-                return res.status(404).json({
+        } catch (error: unknown) {
+            if (error instanceof AppError) {
+                return res.status(error.statusCode).json({
                     success: false,
                     message: error.message
                 });
@@ -265,17 +284,11 @@ export class FloodReportController {
 
             console.error(error);
 
-           if (error instanceof AppError) {
-            return res.status(error.statusCode).json({
-                success: false,
-                message: error.message
-            });
-        }
             return res.status(500).json({
                 success: false,
                 message: "Internal server error"
             });
-}
+        }
     };
 
     // PATCH /api/flood-reports/:id/status
@@ -303,7 +316,6 @@ export class FloodReportController {
             }
 
             const { status } = req.body;
-
             if (
                 status !== "aprobado" &&
                 status !== "rechazado"
@@ -347,13 +359,11 @@ export class FloodReportController {
         }
     };
     
-    
-    // DELETE /api/flood-reports/:id
+   // DELETE /api/flood-reports/:id
     deleteReport = async (
         req: AuthRequest,
         res: Response
     ) => {
-
         try {
 
             const id = Number(req.params.id);
@@ -364,14 +374,12 @@ export class FloodReportController {
                     message: "Invalid report id"
                 });
             }
-
-             if (!req.user) {
+            if (!req.user) {
             return res.status(401).json({
                 success: false,
                 message: "Authentication required"
             });
         }
-
             const existingReport =
                 await this.service.getReportById(id);
 
@@ -389,13 +397,9 @@ export class FloodReportController {
                 message: "Flood report deleted successfully"
             });
 
-        } catch (error: any) {
-
-            if (
-                error.message ===
-                "Flood report not found"
-            ) {
-                return res.status(404).json({
+        } catch (error: unknown) {
+            if (error instanceof AppError) {
+                return res.status(error.statusCode).json({
                     success: false,
                     message: error.message
                 });
@@ -405,8 +409,8 @@ export class FloodReportController {
 
             return res.status(500).json({
                 success: false,
-                message: "Error deleting flood report"
+                message: "Internal server error"
             });
         }
-    };
+    }
 }

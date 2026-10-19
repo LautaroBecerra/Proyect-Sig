@@ -30,6 +30,10 @@ export class FloodReportService {
         return report;
     }
 
+    async getApprovedReports() {
+         return await this.repository.findApproved();
+    }
+
     // Obtener por usuario
     async getReportsByUser(userId: number) {
 

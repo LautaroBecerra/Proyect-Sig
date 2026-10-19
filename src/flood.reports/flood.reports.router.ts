@@ -16,6 +16,15 @@ router.get(
     controller.getAllReports
 );
 
+router.get(
+  "/public",
+    (req, res, next) => {
+    console.log("ENTRÓ A LA RUTA PÚBLICA");
+    next();
+  },
+  controller.getApprovedReports
+);
+
 // Obtener reportes de un usuario
 // IMPORTANTE: tiene que estar antes de /:id
 router.get(
