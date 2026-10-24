@@ -38,22 +38,28 @@ export class FloodReportRepository {
         const result = await pool.query(
             `
             SELECT
-            id,
-            latitude,
-            longitude,
-            description,
-            severity,
-            incident_type,
-            water_depth_range,
-            problem_persists,
-            status,
-            created_at
-            FROM flood_reports
-            WHERE status = 'aprobado'
-            ORDER BY created_at DESC
+                fr.id,
+                fr.user_id,
+                u.username,
+                fr.latitude,
+                fr.longitude,
+                fr.description,
+                fr.severity,
+                fr.incident_type,
+                fr.water_depth_range,
+                fr.problem_persists,
+                fr.evacuation,
+                fr.work_affected,
+                fr.services_affected,
+                fr.assistance_needed,
+                fr.status,
+                fr.created_at
+            FROM flood_reports fr
+            LEFT JOIN users u ON u.id = fr.user_id
+            WHERE fr.status = 'aprobado'
+            ORDER BY fr.created_at DESC
             `
         );
-
         return result.rows;
      }   
 
