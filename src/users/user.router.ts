@@ -15,6 +15,8 @@ router.post("/", controller.createUser);
 
 router.put("/:id", authMiddleware, controller.updateUser);
 
+router.put("/:id/password", authMiddleware, controller.changePassword);
+
 router.delete("/:id", authMiddleware, requireAdmin, controller.deleteUser);
 
 export default router;

@@ -138,6 +138,76 @@ export class UserController {
     }
 };
 
+    
+ changePassword = async (req: AuthRequest, res: Response) => {
+        try {
+            const id = Number(req.params.id);
+
+            if (!Number.isInteger(id) || id <= 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid user id"
+                });
+            }
+
+            if (!req.user) {
+                return res.status(401).json({
+                    success: false,
+                    message: "Authentication required"
+                });
+            }
+
+            if (req.user.id !== id) {
+                return res.status(403).json({
+                    success: false,
+                    message: "You can only change your own password"
+                });
+            }
+
+            const { currentPassword, newPassword } = req.body;
+
+            if (
+                typeof currentPassword !== "string" ||
+                typeof newPassword !== "string" ||
+                !currentPassword ||
+                !newPassword
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Current password and new password are required"
+                });
+            }
+
+            await this.service.changePassword(
+                id,
+                currentPassword,
+                newPassword
+            );
+
+            return res.json({
+                success: true,
+                message: "Password updated successfully"
+            });
+        } catch (error) {
+            const message = error instanceof Error
+                ? error.message
+                : "Error changing password";
+
+            const status =
+                message === "User not found" ? 404 :
+                message === "Current password is incorrect" ? 400 :
+                message === "The new password must contain at least 6 characters" ? 400 :
+                message === "The new password must be different from the current password" ? 400 :
+                message.startsWith("This account does not have a password") ? 400 :
+                500;
+
+            return res.status(status).json({
+                success: false,
+                message
+            });
+        }
+    };
+
     deleteUser = async (req: Request, res: Response) => {
         try {
             const id = Number(req.params.id);

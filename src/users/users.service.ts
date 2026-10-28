@@ -76,23 +76,9 @@ export class UserService {
         id: number,
         data: UpdateUserDto
     ) {
-        let userData = data;
-
-        if (data.password) {
-            const hashedPassword = await bcrypt.hash(
-                data.password,
-                10
-            );
-
-            userData = {
-                ...data,
-                password: hashedPassword
-            };
-        }
-
         const user = await this.repository.update(
             id,
-            userData
+            data
         );
 
         if (!user) {
@@ -100,6 +86,56 @@ export class UserService {
         }
 
         return this.toResponse(user);
+    }
+
+    async changePassword(
+     id: number,
+     currentPassword: string,
+     newPassword: string
+    ): Promise<void> {
+     const user = await this.repository.findById(id);
+
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    if (!user.password) {
+        throw new Error(
+            "This account does not have a password. It may use Google login."
+        );
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+        currentPassword,
+        user.password
+    );
+
+    if (!isPasswordValid) {
+        throw new Error("Current password is incorrect");
+    }
+
+    if (newPassword.length < 6) {
+        throw new Error(
+            "The new password must contain at least 6 characters"
+        );
+    }
+
+    if (currentPassword === newPassword) {
+        throw new Error(
+            "The new password must be different from the current password"
+        );
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    const updated = await this.repository.updatePassword(
+        id,
+        hashedPassword
+    );
+
+    if (!updated) {
+        throw new Error("Could not update password");
+    }
     }
 
     async deleteUser(id: number) {

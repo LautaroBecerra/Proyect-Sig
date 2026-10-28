@@ -124,10 +124,8 @@ export class UserRepository {
             UPDATE users
             SET
                 username = COALESCE($1, username),
-                email = COALESCE($2, email),
-                password = COALESCE($3, password),
-                google_id = COALESCE($4, google_id)
-            WHERE id = $5
+                email = COALESCE($2, email)
+            WHERE id = $3
             RETURNING
                 id,
                 username,
@@ -140,13 +138,26 @@ export class UserRepository {
             [
                 data.username ?? null,
                 data.email ?? null,
-                data.password ?? null,
-                data.google_id ?? null,
                 id
             ]
         );
-
         return result.rows[0] || null;
+    }
+
+    async updatePassword(
+        id: number,
+        hashedPassword: string
+    ): Promise<boolean> {
+    const result = await pool.query(
+        `
+        UPDATE users
+        SET password = $1
+        WHERE id = $2
+        `,
+        [hashedPassword, id]
+    );
+
+    return (result.rowCount ?? 0) > 0;
     }
 
     async delete(id: number): Promise<boolean> {
