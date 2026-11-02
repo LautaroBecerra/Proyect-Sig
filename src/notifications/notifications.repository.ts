@@ -3,6 +3,17 @@ import pool from "../config/postgresql";
 export class NotificationRepository {
 
     async createPendingConfirmations(): Promise<number> {
+        const dbInfo = await pool.query(`
+    SELECT
+        current_database() AS database,
+        current_schema() AS schema,
+        current_user AS user,
+        inet_server_addr() AS server,
+        inet_server_port() AS port,
+        to_regclass('public.notifications') AS notifications_table
+`);
+
+console.log("DATABASE INFO:", dbInfo.rows[0]);
 
         const result = await pool.query(`
             INSERT INTO notifications (

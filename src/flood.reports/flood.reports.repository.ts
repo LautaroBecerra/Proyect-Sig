@@ -226,39 +226,43 @@ export class FloodReportRepository {
     }
 
     // Actualizar estado del reporte (solo admin)
-    async updateStatus(id: number, status: "aprobado" | "rechazado"): Promise<FloodReport | null> {
+    async updateStatus(
+        id: number,
+        status: "aprobado" | "rechazado"
+        ): Promise<FloodReport | null> {
         const result = await pool.query(
             `
             UPDATE flood_reports
-            SET status = $1
+            SET status = $1::varchar,
                 next_confirmation_at = CASE
-                 WHEN $1 = 'aprobado' AND problem_persists = true
+                WHEN $1::varchar = 'aprobado'
+                    AND problem_persists = true
                     THEN NOW() + INTERVAL '3 days'
                 ELSE NULL
                 END
             WHERE id = $2
             RETURNING
-                id,
-                user_id,
-                latitude,
-                longitude,
-                description,
-                severity,
-                incident_type,
-                water_depth_range,
-                problem_persists,
-                evacuation,
-                work_affected,
-                services_affected,
-                assistance_needed,
-                status,
-                created_at
+            id,
+            user_id,
+            latitude,
+            longitude,
+            description,
+            severity,
+            incident_type,
+            water_depth_range,
+            problem_persists,
+            evacuation,
+            work_affected,
+            services_affected,
+            assistance_needed,
+            status,
+            created_at
             `,
             [status, id]
         );
 
         return result.rows[0] || null;
-    }
+        }
     
     async confirmReport(reportId: number, userId: number, data: ConfirmFloodReport): Promise<FloodReport | null> {
        const client = await pool.connect();
