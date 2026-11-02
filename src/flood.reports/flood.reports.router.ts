@@ -9,16 +9,9 @@ const controller =
     new FloodReportController();
 
 // Obtener todos los reportes
-router.get(
-    "/",
-    authMiddleware,
-    requireAdmin,
-    controller.getAllReports
-);
+router.get("/", authMiddleware, requireAdmin, controller.getAllReports);
 
-router.get(
-  "/public",
-    (req, res, next) => {
+router.get("/public", (req, res, next) => {
     console.log("ENTRÓ A LA RUTA PÚBLICA");
     next();
   },
@@ -27,32 +20,16 @@ router.get(
 
 // Obtener reportes de un usuario
 // IMPORTANTE: tiene que estar antes de /:id
-router.get(
-    "/user/:userId",
-    authMiddleware,
-    controller.getReportsByUser
-);
+router.get("/user/:userId", authMiddleware, controller.getReportsByUser);
 
 // Obtener un reporte
-router.get(
-    "/:id",
-    authMiddleware,
-    controller.getReportById
-);
+router.get("/:id", authMiddleware, controller.getReportById);
 
 // Crear reporte
-router.post(
-    "/",
-    authMiddleware,
-    controller.createReport
-);
+router.post("/", authMiddleware, controller.createReport);
 
 // Actualizar reporte
-router.put(
-    "/:id",
-    authMiddleware,
-    controller.updateReport
-);
+router.put("/:id", authMiddleware, controller.updateReport);
 
 // Actualizar estado del reporte (solo admin)
 router.patch(
@@ -60,6 +37,13 @@ router.patch(
     authMiddleware,
     requireAdmin,
     controller.updateReportStatus
+);
+
+// Confirmar si el problema continúa
+router.patch(
+    "/:id/confirm",
+    authMiddleware,
+    controller.confirmReport
 );
 
 // Eliminar reporte

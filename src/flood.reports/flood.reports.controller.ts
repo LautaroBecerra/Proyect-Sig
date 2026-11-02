@@ -3,6 +3,7 @@ import { AppError } from "../utils/AppError";
 import { AuthRequest } from "../auth/auth.middleware";
 import {CreateFloodReport, UpdateFloodReport} from "./flood.reports.interface";
 import { FloodReportService } from "./flood.reports.services";
+import { ConfirmFloodReport } from "./flood.reports.interface";
 export class FloodReportController {
     
     private service: FloodReportService;
@@ -297,6 +298,58 @@ export class FloodReportController {
             return res.status(500).json({
                 success: false,
                 message: "Error updating flood report status"
+            });
+        }
+    };
+    // PATCH /api/flood-reports/:id/confirm
+    confirmReport = async (
+        req: AuthRequest,
+        res: Response
+    ) => {
+        try {
+            if (!req.user) {
+                return res.status(401).json({
+                    success: false,
+                    message: "Authentication required"
+                });
+            }
+
+            const id = Number(req.params.id);
+
+            if (!Number.isInteger(id) || id <= 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid report id"
+                });
+            }
+
+            const data: ConfirmFloodReport = req.body;
+
+            const report = await this.service.confirmReport(
+                id,
+                req.user.id,
+                data
+            );
+
+            return res.status(200).json({
+                success: true,
+                message: "Flood report confirmation saved successfully",
+                data: report
+            });
+
+        } catch (error: any) {
+            if (error instanceof AppError) {
+                return res.status(error.statusCode).json({
+                    success: false,
+                    message: error.message
+                });
+            }
+
+            console.error(error);
+
+            return res.status(500).json({
+                success: false,
+                message: "Error confirming flood report"
             });
         }
     };

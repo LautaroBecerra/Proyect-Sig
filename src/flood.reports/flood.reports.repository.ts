@@ -1,6 +1,6 @@
 import pool from "../config/postgresql";
 
-import {FloodReport,CreateFloodReport,UpdateFloodReport} from "./flood.reports.interface";
+import {FloodReport,CreateFloodReport,UpdateFloodReport, ConfirmFloodReport} from "./flood.reports.interface";
 
 export class FloodReportRepository {
 
@@ -57,6 +57,7 @@ export class FloodReportRepository {
             FROM flood_reports fr
             LEFT JOIN users u ON u.id = fr.user_id
             WHERE fr.status = 'aprobado'
+            AND fr.problem_persists = true
             ORDER BY fr.created_at DESC
             `
         );
@@ -172,7 +173,7 @@ export class FloodReportRepository {
                 data.severity ?? null,
                 data.incident_type ?? null,
                 data.water_depth_range ?? null,
-                data.problem_persists ?? null,
+                data.problem_persists ?? true,
                 data.evacuation ?? null,
                 data.work_affected ?? null,
                 data.services_affected ?? null,
@@ -199,28 +200,12 @@ export class FloodReportRepository {
                 severity = COALESCE($4, severity),
                 incident_type = COALESCE($5, incident_type),
                 water_depth_range = COALESCE($6, water_depth_range),
-                problem_persists = COALESCE($7, problem_persists),
-                evacuation = COALESCE($8, evacuation),
-                work_affected = COALESCE($9, work_affected),
-                services_affected = COALESCE($10, services_affected),
-                assistance_needed = COALESCE($11, assistance_needed)
-            WHERE id = $12
-            RETURNING
-                id,
-                user_id,
-                latitude,
-                longitude,
-                description,
-                severity,
-                incident_type,
-                water_depth_range,
-                problem_persists,
-                evacuation,
-                work_affected,
-                services_affected,
-                assistance_needed,
-                status,
-                created_at
+                evacuation = COALESCE($7, evacuation),
+                work_affected = COALESCE($8, work_affected),
+                services_affected = COALESCE($9, services_affected),
+                assistance_needed = COALESCE($10, assistance_needed)
+            WHERE id = $11
+            RETURNING *
             `,
             [
                 data.latitude ?? null,
@@ -229,7 +214,6 @@ export class FloodReportRepository {
                 data.severity ?? null,
                 data.incident_type ?? null,
                 data.water_depth_range ?? null,
-                data.problem_persists ?? null,
                 data.evacuation ?? null,
                 data.work_affected ?? null,
                 data.services_affected ?? null,
@@ -242,15 +226,16 @@ export class FloodReportRepository {
     }
 
     // Actualizar estado del reporte (solo admin)
-    async updateStatus(
-        id: number,
-        status: "aprobado" | "rechazado"
-    ): Promise<FloodReport | null> {
-
+    async updateStatus(id: number, status: "aprobado" | "rechazado"): Promise<FloodReport | null> {
         const result = await pool.query(
             `
             UPDATE flood_reports
             SET status = $1
+                next_confirmation_at = CASE
+                 WHEN $1 = 'aprobado' AND problem_persists = true
+                    THEN NOW() + INTERVAL '3 days'
+                ELSE NULL
+                END
             WHERE id = $2
             RETURNING
                 id,
@@ -275,7 +260,91 @@ export class FloodReportRepository {
         return result.rows[0] || null;
     }
     
-    
+    async confirmReport(reportId: number, userId: number, data: ConfirmFloodReport): Promise<FloodReport | null> {
+       const client = await pool.connect();
+        try {
+            await client.query("BEGIN");
+
+            // Actualizar el estado de continuidad del reporte
+            const reportResult = await client.query(`
+                UPDATE flood_reports
+                SET problem_persists = $1,
+                    problem_persists_updated_at = NOW(),
+                    next_confirmation_at = CASE
+                        WHEN $1 = true
+                            THEN NOW() + INTERVAL '3 days'
+                        ELSE NULL
+                    END
+                WHERE id = $2
+                AND user_id = $3
+                AND status = 'aprobado'
+                RETURNING *
+            `, [
+                data.problem_persists,
+                reportId,
+                userId
+            ]);
+
+            if (reportResult.rowCount === 0) {
+                await client.query("ROLLBACK");
+                return null;
+            }
+
+            // Si la respuesta proviene de una notificación,
+            // marcarla como respondida.
+            if (data.notification_id !== undefined) {
+                const notificationResult = await client.query(`
+                    UPDATE notifications
+                    SET responded_at = NOW(),
+                        is_read = true
+                    WHERE id = $1
+                    AND flood_report_id = $2
+                    AND user_id = $3
+                    AND responded_at IS NULL
+                `, [
+                    data.notification_id,
+                    reportId,
+                    userId
+                ]);
+
+                if (notificationResult.rowCount === 0) {
+                    throw new Error("Notification not found or already answered");
+                }
+            }
+
+            // Guardar el historial de la respuesta
+            await client.query(`
+                INSERT INTO flood_report_updates (
+                    flood_report_id,
+                    user_id,
+                    notification_id,
+                    problem_persists,
+                    source
+                )
+                VALUES ($1, $2, $3, $4, $5)
+            `, [
+                reportId,
+                userId,
+                data.notification_id ?? null,
+                data.problem_persists,
+                data.notification_id !== undefined
+                    ? "notification"
+                    : "manual"
+            ]);
+
+            await client.query("COMMIT");
+
+            return reportResult.rows[0];
+
+        } catch (error) {
+            await client.query("ROLLBACK");
+            throw error;
+
+        } finally {
+            client.release();
+        }
+    }
+
     // Eliminar reporte
     async delete(id: number): Promise<boolean> {
 

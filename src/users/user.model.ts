@@ -7,6 +7,7 @@ export class UserModel implements User {
     password: string | null;
     google_id: string | null;
     created_at: Date;
+    role: "user" | "admin";
 
     constructor(data: User) {
         this.id = data.id;
@@ -15,5 +16,6 @@ export class UserModel implements User {
         this.password = data.password;
         this.google_id = data.google_id;
         this.created_at = data.created_at;
+        this.role = data.role;
     }
 }

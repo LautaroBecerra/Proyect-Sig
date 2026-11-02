@@ -1,8 +1,7 @@
 import { AppError } from "../utils/AppError";
-import {CreateFloodReport, UpdateFloodReport} from "./flood.reports.interface";
+import {CreateFloodReport, UpdateFloodReport, ConfirmFloodReport} from "./flood.reports.interface";
 import { FloodReportRepository } from "./flood.reports.repository";
 import {validateIncidentType, validateWaterDepthRange, validateProblemPersists, validateEvacuation, validateWorkAffected, validateServicesAffected, validateAssistanceNeeded, validateLatitude, validateLongitude, validateDescription, validateSeverity} from "./flood.reports.validation";
-
 
 export class FloodReportService {
 
@@ -83,65 +82,58 @@ export class FloodReportService {
         return await this.repository.create(userId, data);
     }
     // Actualizar
-async updateReport(
-    id: number,
-    data: UpdateFloodReport
-) {
-    if (data.latitude !== undefined) {
-        validateLatitude(data.latitude);
+    async updateReport(id: number, data: UpdateFloodReport) {
+        if (data.latitude !== undefined) {
+            validateLatitude(data.latitude);
+        }
+
+        if (data.longitude !== undefined) {
+            validateLongitude(data.longitude);
+        }
+
+        if (data.description !== undefined) {
+            validateDescription(data.description);
+        }
+
+        if (data.severity !== undefined) {
+            validateSeverity(data.severity);
+        }
+
+        if (data.incident_type !== undefined) {
+            validateIncidentType(data.incident_type);
+        }
+
+        if (data.water_depth_range !== undefined) {
+            validateWaterDepthRange(data.water_depth_range);
+        }
+
+        if (data.evacuation !== undefined) {
+            validateEvacuation(data.evacuation);
+        }
+
+        if (data.work_affected !== undefined) {
+            validateWorkAffected(data.work_affected);
+        }
+
+        if (data.services_affected !== undefined) {
+            validateServicesAffected(data.services_affected);
+        }
+
+        if (data.assistance_needed !== undefined) {
+            validateAssistanceNeeded(data.assistance_needed);
+        }
+
+        const report = await this.repository.update(
+            id,
+            data
+        );
+
+        if (!report) {
+            throw new AppError("Flood report not found", 404);
+        }
+
+        return report;
     }
-
-    if (data.longitude !== undefined) {
-        validateLongitude(data.longitude);
-    }
-
-    if (data.description !== undefined) {
-        validateDescription(data.description);
-    }
-
-    if (data.severity !== undefined) {
-        validateSeverity(data.severity);
-    }
-
-    if (data.incident_type !== undefined) {
-        validateIncidentType(data.incident_type);
-    }
-
-    if (data.water_depth_range !== undefined) {
-        validateWaterDepthRange(data.water_depth_range);
-    }
-
-    if (data.problem_persists !== undefined) {
-        validateProblemPersists(data.problem_persists);
-    }
-
-    if (data.evacuation !== undefined) {
-        validateEvacuation(data.evacuation);
-    }
-
-    if (data.work_affected !== undefined) {
-        validateWorkAffected(data.work_affected);
-    }
-
-    if (data.services_affected !== undefined) {
-        validateServicesAffected(data.services_affected);
-    }
-
-    if (data.assistance_needed !== undefined) {
-        validateAssistanceNeeded(data.assistance_needed);
-    }
-
-    const report = await this.repository.update(
-        id,
-        data
-    );
-
-    if (!report) {
-        throw new AppError("Flood report not found", 404);
-    }
-
-    return report;
-}
 
     // Actualizar estado del reporte (solo admin)
     async updateReportStatus(
@@ -156,6 +148,35 @@ async updateReport(
 
         if (!report) {
             throw new AppError("Flood report not found", 404);
+        }
+
+        return report;
+    }
+
+    async confirmReport(
+        reportId: number,
+        userId: number,
+        data: ConfirmFloodReport
+    ) {
+        if (!userId) {
+            throw new AppError("Authentication required", 401);
+        }
+
+        if (typeof data.problem_persists !== "boolean") {
+            throw new AppError("problem_persists must be a boolean", 400);
+        }
+
+        const report = await this.repository.confirmReport(
+            reportId,
+            userId,
+            data
+        );
+
+        if (!report) {
+            throw new AppError(
+                "Report not found, not approved or does not belong to user",
+                404
+            );
         }
 
         return report;

@@ -12,6 +12,8 @@ export class FloodReportModel implements FloodReport {
     incident_type: string | null;
     water_depth_range: string | null;
     problem_persists: boolean | null;
+    problem_persists_updated_at: Date | null;
+    next_confirmation_at: Date | null;
 
     evacuation: string | null;
     work_affected: string | null;
@@ -34,6 +36,8 @@ export class FloodReportModel implements FloodReport {
         this.incident_type = data.incident_type;
         this.water_depth_range = data.water_depth_range;
         this.problem_persists = data.problem_persists;
+        this.problem_persists_updated_at = data.problem_persists_updated_at;
+        this.next_confirmation_at = data.next_confirmation_at;
 
         this.evacuation = data.evacuation;
         this.work_affected = data.work_affected;
