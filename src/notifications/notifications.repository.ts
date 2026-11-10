@@ -66,6 +66,7 @@ console.log("DATABASE INFO:", dbInfo.rows[0]);
                 ON fr.id = n.flood_report_id
 
             WHERE n.user_id = $1
+              AND n.deleted_at IS NULL
             ORDER BY n.created_at DESC
             LIMIT 50
         `, [userId]);
@@ -83,5 +84,17 @@ console.log("DATABASE INFO:", dbInfo.rows[0]);
          `, [id, userId]);
 
         return (result.rowCount ?? 0) > 0;
+    }
+
+   async deleteAllByUserId(userId: number): Promise<number> {
+        const result = await pool.query(`
+            UPDATE notifications
+            SET deleted_at = NOW()
+            WHERE user_id = $1
+            AND deleted_at IS NULL
+            RETURNING id
+        `, [userId]);
+
+        return result.rowCount ?? 0;
     }
 }

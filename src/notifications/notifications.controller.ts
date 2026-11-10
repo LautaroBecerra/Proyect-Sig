@@ -72,4 +72,32 @@ export class NotificationController {
             });
         }
     };
+
+    deleteAllNotifications = async (req: AuthRequest, res: Response) => {
+        try {
+            if (!req.user) {
+                return res.status(401).json({
+                    message: "Authentication required"
+                });
+            }
+
+            const deletedCount = await this.repository.deleteAllByUserId(
+                req.user.id
+            );
+
+            return res.status(200).json({
+                message: "Notification history deleted successfully",
+                data: {
+                    deletedCount
+                }
+            });
+
+        } catch (error) {
+            console.error("Error deleting notifications:", error);
+
+            return res.status(500).json({
+                message: "Error deleting notification history"
+            });
+        }
+    };
 }
