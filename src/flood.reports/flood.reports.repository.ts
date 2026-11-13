@@ -1,12 +1,9 @@
 import pool from "../config/postgresql";
-
-import {FloodReport,CreateFloodReport,UpdateFloodReport, ConfirmFloodReport} from "./flood.reports.interface";
+import {FloodReport,CreateFloodReport,UpdateFloodReport, ConfirmFloodReport, CreateFloodReportImage, FloodReportImage} from "./flood.reports.interface";
 
 export class FloodReportRepository {
-
     // Obtener todos los reportes
     async findAll(): Promise<FloodReport[]> {
-
         const result = await pool.query(
             `
             SELECT
@@ -29,10 +26,8 @@ export class FloodReportRepository {
             ORDER BY created_at DESC
             `
         );
-
         return result.rows;
     }
-
     // Obtener reportes aprobados para el mapa público
     async findApproved(): Promise<FloodReport[]> {
         const result = await pool.query(
@@ -63,10 +58,8 @@ export class FloodReportRepository {
         );
         return result.rows;
      }   
-
     // Obtener un reporte por ID
     async findById(id: number): Promise<FloodReport | null> {
-
         const result = await pool.query(
             `
             SELECT
@@ -90,13 +83,10 @@ export class FloodReportRepository {
             `,
             [id]
         );
-
         return result.rows[0] || null;
     }
-
     // Obtener reportes de un usuario
     async findByUserId(userId: number): Promise<FloodReport[]> {
-
         const result = await pool.query(
             `
             SELECT
@@ -121,13 +111,10 @@ export class FloodReportRepository {
             `,
             [userId]
         );
-
         return result.rows;
     }
-
     // Crear reporte
     async create(userId: number,data: CreateFloodReport): Promise<FloodReport> {
-
         const result = await pool.query(
             `
             INSERT INTO flood_reports(
@@ -145,8 +132,7 @@ export class FloodReportRepository {
                 assistance_needed
             )
             VALUES (
-                $1, $2, $3, $4, $5,
-                $6, $7, $8, $9, $10, $11, $12
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
             )
             RETURNING
                 id,
@@ -180,16 +166,10 @@ export class FloodReportRepository {
                 data.assistance_needed ?? null
             ]
         );
-
         return result.rows[0];
     }
-
     // Actualizar reporte
-    async update(
-        id: number,
-        data: UpdateFloodReport
-    ): Promise<FloodReport | null> {
-
+    async update(id: number,data: UpdateFloodReport ): Promise<FloodReport | null> {
         const result = await pool.query(
             `
             UPDATE flood_reports
@@ -221,10 +201,8 @@ export class FloodReportRepository {
                 id
             ]
         );
-
         return result.rows[0] || null;
     }
-
     // Actualizar estado del reporte (solo admin)
     async updateStatus(
         id: number,
@@ -260,15 +238,12 @@ export class FloodReportRepository {
             `,
             [status, id]
         );
-
         return result.rows[0] || null;
         }
-    
     async confirmReport(reportId: number, userId: number, data: ConfirmFloodReport): Promise<FloodReport | null> {
        const client = await pool.connect();
         try {
             await client.query("BEGIN");
-
             // Actualizar el estado de continuidad del reporte
             const reportResult = await client.query(`
                 UPDATE flood_reports
@@ -293,7 +268,6 @@ export class FloodReportRepository {
                 await client.query("ROLLBACK");
                 return null;
             }
-
             // Si la respuesta proviene de una notificación,
             // marcarla como respondida.
             if (data.notification_id !== undefined) {
@@ -310,12 +284,10 @@ export class FloodReportRepository {
                     reportId,
                     userId
                 ]);
-
                 if (notificationResult.rowCount === 0) {
                     throw new Error("Notification not found or already answered");
                 }
             }
-
             // Guardar el historial de la respuesta
             await client.query(`
                 INSERT INTO flood_report_updates (
@@ -335,11 +307,9 @@ export class FloodReportRepository {
                     ? "notification"
                     : "manual"
             ]);
-
             await client.query("COMMIT");
 
             return reportResult.rows[0];
-
         } catch (error) {
             await client.query("ROLLBACK");
             throw error;
@@ -349,9 +319,97 @@ export class FloodReportRepository {
         }
     }
 
+    async createWithImages(userId: number, data: CreateFloodReport, images: Omit<CreateFloodReportImage, "flood_report_id">[] ): Promise<FloodReport> {
+        const client = await pool.connect();
+        try {
+            await client.query("BEGIN");
+            const reportResult = await client.query(
+                `INSERT INTO flood_reports (
+                    user_id,
+                    latitude,
+                    longitude,
+                    description,
+                    severity,
+                    incident_type,
+                    water_depth_range,
+                    problem_persists,
+                    evacuation,
+                    work_affected,
+                    services_affected,
+                    assistance_needed
+                )
+                VALUES (
+                    $1, $2, $3, $4, $5, $6,
+                    $7, $8, $9, $10, $11, $12
+                )
+                RETURNING *`,
+                [
+                    userId,
+                    data.latitude,
+                    data.longitude,
+                    data.description ?? null,
+                    data.severity ?? null,
+                    data.incident_type ?? null,
+                    data.water_depth_range ?? null,
+                    data.problem_persists ?? true,
+                    data.evacuation ?? null,
+                    data.work_affected ?? null,
+                    data.services_affected ?? null,
+                    data.assistance_needed ?? null
+                ]
+            );
+            const report: FloodReport = reportResult.rows[0];
+            for (const image of images) {
+                await client.query(
+                    `INSERT INTO flood_report_images (
+                        flood_report_id,
+                        file_name,
+                        storage_path,
+                        mime_type,
+                        size_bytes
+                    )
+                    VALUES ($1, $2, $3, $4, $5)`,
+                    [
+                        report.id,
+                        image.file_name,
+                        image.storage_path,
+                        image.mime_type,
+                        image.size_bytes
+                    ]
+                );
+            }
+            await client.query("COMMIT");
+            return report;
+        } catch (error) {
+            await client.query("ROLLBACK");
+            throw error;
+
+        } finally {
+            client.release();
+        }
+    }
+    async findImagesByReportId(reportId: number): Promise<FloodReportImage[]> {
+        const result = await pool.query(
+            `
+            SELECT
+                id,
+                flood_report_id,
+                file_name,
+                storage_path,
+                mime_type,
+                size_bytes,
+                created_at,
+                '/uploads/flood-reports/' || file_name AS url
+            FROM flood_report_images
+            WHERE flood_report_id = $1
+            ORDER BY created_at ASC
+            `,
+            [reportId]
+        );
+        return result.rows;
+    }
     // Eliminar reporte
     async delete(id: number): Promise<boolean> {
-
         const result = await pool.query(
             `
             DELETE FROM flood_reports
@@ -359,7 +417,6 @@ export class FloodReportRepository {
             `,
             [id]
         );
-
         return (result.rowCount ?? 0) > 0;
     }
 }

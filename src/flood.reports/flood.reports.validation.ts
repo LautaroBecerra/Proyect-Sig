@@ -44,19 +44,27 @@ export const validAssistance = [
 ];
 
 export function validateIncidentType(
-    incidentType: string | null | undefined
-) {
-    if (
-        incidentType &&
-        !validIncidentTypes.includes(incidentType)
+        incidentType: string | null | undefined
     ) {
-        throw new AppError(
-            "Invalid incident_type",
-            400
-        );
-    }
-}
+        if (!incidentType) {
+            return;
+        }
 
+        const selectedTypes = incidentType
+            .split(",")
+            .map(type => type.trim());
+
+        const invalidType = selectedTypes.find(
+            type => !validIncidentTypes.includes(type)
+        );
+
+        if (invalidType) {
+            throw new AppError(
+                `Invalid incident_type: ${invalidType}`,
+                400
+            );
+        }
+    }
 export function validateWaterDepthRange(
     waterDepthRange: string | null | undefined
 ) {
@@ -103,12 +111,27 @@ export function validateEvacuation(
 export function validateWorkAffected(
     workAffected: string | null | undefined
 ) {
-    if (
-        workAffected &&
-        !validWorkAffectedOptions.includes(workAffected)
-    ) {
+    if (!workAffected) {
+        return;
+    }
+
+    if (workAffected === "No") {
+        return;
+    }
+
+    const selectedOptions = workAffected
+        .split(",")
+        .map(option => option.trim());
+
+    const invalidOption = selectedOptions.find(
+        option =>
+            !validWorkAffectedOptions.includes(option) ||
+            option === "No"
+    );
+
+    if (invalidOption) {
         throw new AppError(
-            "Invalid work_affected option",
+            `Invalid work_affected option: ${invalidOption}`,
             400
         );
     }

@@ -4,6 +4,8 @@ import { AuthRequest } from "../auth/auth.middleware";
 import {CreateFloodReport, UpdateFloodReport} from "./flood.reports.interface";
 import { FloodReportService } from "./flood.reports.services";
 import { ConfirmFloodReport } from "./flood.reports.interface";
+import fs from "fs/promises";
+import path from "path";
 export class FloodReportController {
     
     private service: FloodReportService;
@@ -151,41 +153,70 @@ export class FloodReportController {
             });
         }
     };
-    // POST /api/flood-reports
-    createReport = async (
-        req: AuthRequest,
-        res: Response
-    ) => {
+    // POST /api/flood-reports 
+    createReport = async (req: AuthRequest, res: Response) => {
+        const files = Array.isArray(req.files) ? req.files : [];
+
         try {
-            if(!req.user) {
+            if (!req.user) {
                 return res.status(401).json({
                     success: false,
-                    message: "Authentication required"
+                    message: "Usuario no autenticado"
                 });
             }
-            console.log('BODY RECIBIDO:', JSON.stringify(req.body, null, 2));
-            const data: CreateFloodReport =
-                req.body;
-            const report =
-                await this.service.createReport(req.user.id, data);
-            return res.status(201).json({
-                success: true,
-                message: "Flood report created successfully",
-                data: report
-            });
+
+            console.log("BODY RECIBIDO:", JSON.stringify(req.body, null, 2));
+
+            const data: CreateFloodReport = {
+                ...req.body,
+                latitude: Number(req.body.latitude),
+                longitude: Number(req.body.longitude),
+
+                problem_persists:
+                    req.body.problem_persists === undefined
+                        ? undefined
+                        : req.body.problem_persists === "true",
+
+                services_affected: req.body.services_affected
+                    ? JSON.parse(req.body.services_affected)
+                    : undefined,
+
+                assistance_needed: req.body.assistance_needed
+                    ? JSON.parse(req.body.assistance_needed)
+                    : undefined
+            };
+
+            const report = await this.service.createReport(
+                req.user.id,
+                data,
+                files
+            );
+
+        return res.status(201).json({
+            success: true,
+            message: "Flood report created successfully",
+            data: report
+        });
+
         } catch (error: any) {
-        console.error(error);
-        if (error instanceof AppError) {
-            return res.status(error.statusCode).json({
+            console.error(error);
+
+            await Promise.all(
+                files.map(file => fs.unlink(file.path).catch(() => undefined))
+            );
+
+            if (error instanceof AppError) {
+                return res.status(error.statusCode).json({
+                    success: false,
+                    message: error.message
+                });
+            }
+
+            return res.status(500).json({
                 success: false,
-                message: error.message
+                message: "Internal server error"
             });
         }
-        return res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
-    }
     };
     // PUT /api/flood-reports/:id
     updateReport = async (

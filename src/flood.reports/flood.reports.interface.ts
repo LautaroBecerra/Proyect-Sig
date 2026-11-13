@@ -59,3 +59,22 @@ export interface ConfirmFloodReport {
     problem_persists: boolean;
     notification_id?: number;
 }
+
+export interface CreateFloodReportImage {
+    flood_report_id: number;
+    file_name: string;
+    storage_path: string;
+    mime_type: string;
+    size_bytes: number;
+}
+
+export interface FloodReportImage {
+    id: number;
+    flood_report_id: number;
+    file_name: string;
+    storage_path: string;
+    mime_type: string;
+    size_bytes: number;
+    created_at: Date;
+    url: string;
+}

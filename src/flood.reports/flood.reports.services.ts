@@ -2,6 +2,8 @@ import { AppError } from "../utils/AppError";
 import {CreateFloodReport, UpdateFloodReport, ConfirmFloodReport} from "./flood.reports.interface";
 import { FloodReportRepository } from "./flood.reports.repository";
 import {validateIncidentType, validateWaterDepthRange, validateProblemPersists, validateEvacuation, validateWorkAffected, validateServicesAffected, validateAssistanceNeeded, validateLatitude, validateLongitude, validateDescription, validateSeverity} from "./flood.reports.validation";
+import fs from "fs/promises";
+import path from "path";
 
 export class FloodReportService {
 
@@ -13,74 +15,73 @@ export class FloodReportService {
 
     // Obtener todos
     async getAllReports() {
-
-        return await this.repository.findAll();
+        const reports = await this.repository.findAll();
+        return Promise.all(
+            reports.map(report => this.attachImages(report))
+        );
     }
 
     // Obtener por ID
-    async getReportById(id: number) {
-
-        const report = await this.repository.findById(id);
-
-        if (!report) {
-            throw new AppError("Flood report not found", 404);
-        }
-
-        return report;
+   async getReportById(id: number) {
+    const report = await this.repository.findById(id);
+    if (!report) {
+        throw new AppError("Flood report not found", 404);
+    }
+        return this.attachImages(report);
     }
 
-    async getApprovedReports() {
-         return await this.repository.findApproved();
+  async getApprovedReports() {
+    const reports = await this.repository.findApproved();
+        return Promise.all(
+            reports.map(report => this.attachImages(report))
+     );
     }
-
     // Obtener por usuario
     async getReportsByUser(userId: number) {
-
-        return await this.repository.findByUserId(userId);
+    const reports = await this.repository.findByUserId(userId);
+        return Promise.all(
+            reports.map(report => this.attachImages(report))
+        );
     }
-
     // Crear
-    async createReport(
-        userId: number,
-        data: CreateFloodReport
-    ) {
+    async createReport(userId: number, data: CreateFloodReport, files: Express.Multer.File[] = []) {
+            if (!userId) {
+                throw new AppError("Usuario no autenticado", 401);
+            }
 
-        if (!userId) {
-            throw new AppError("User authentication required", 401);
+            if (data.latitude === undefined) {
+                throw new AppError("La latitud es obligatoria", 400);
+            }
+
+            if (data.longitude === undefined) {
+                throw new AppError("La longitud es obligatoria", 400);
+            }
+
+            validateLatitude(data.latitude);
+            validateLongitude(data.longitude);
+            validateDescription(data.description);
+            validateSeverity(data.severity);
+            validateIncidentType(data.incident_type);
+            validateWaterDepthRange(data.water_depth_range);
+            validateProblemPersists(data.problem_persists);
+            validateEvacuation(data.evacuation);
+            validateWorkAffected(data.work_affected);
+            validateServicesAffected(data.services_affected);
+            validateAssistanceNeeded(data.assistance_needed);
+
+            const images = files.map(file => ({
+                file_name: file.filename,
+                storage_path: `uploads/flood-reports/${file.filename}`,
+                mime_type: file.mimetype,
+                size_bytes: file.size
+            }));
+           const report = await this.repository.createWithImages(
+                userId,
+                data,
+                images
+            );
+            return await this.attachImages(report);
         }
-
-        if (data.latitude === undefined) {
-            throw new AppError("latitude is required", 400);
-        }
-
-        if (data.longitude === undefined) {
-            throw new AppError("longitude is required", 400);
-        }
-
-        validateLatitude(data.latitude);
-
-        validateLongitude(data.longitude);
-
-        validateDescription(data.description);
-
-        validateSeverity(data.severity);
-
-        validateIncidentType(data.incident_type);
-
-        validateWaterDepthRange(data.water_depth_range);
-
-        validateProblemPersists(data.problem_persists);
-
-        validateEvacuation(data.evacuation);
-
-        validateWorkAffected(data.work_affected);
-
-        validateServicesAffected(data.services_affected);
-
-        validateAssistanceNeeded(data.assistance_needed);
-
-        return await this.repository.create(userId, data);
-    }
     // Actualizar
     async updateReport(id: number, data: UpdateFloodReport) {
         if (data.latitude !== undefined) {
@@ -181,17 +182,47 @@ export class FloodReportService {
 
         return report;
     }
-
+    async getImagesByReportId(reportId: number) {
+         return await this.repository.findImagesByReportId(reportId);
+    }
+    private async attachImages(report: any) {
+        const images = await this.repository.findImagesByReportId(report.id);
+        return {
+            ...report,
+            images
+        };
+    }
     // Eliminar
     async deleteReport(id: number) {
-
-        const deleted =
-            await this.repository.delete(id);
-
+        // 1. Recuperar las imágenes antes de eliminar el reporte.
+        const images = await this.repository.findImagesByReportId(id);
+        // 2. Eliminar el reporte de PostgreSQL.
+        const deleted = await this.repository.delete(id);
         if (!deleted) {
             throw new AppError("Flood report not found", 404);
         }
+        // 3. Eliminar todos los archivos físicos.
+        for (const image of images) {
+            const imagePath = path.resolve(
+                process.cwd(),
+                image.storage_path
+            );
+            try {
+                console.log("DIRECTORIO ACTUAL:", process.cwd());
+                console.log("RUTA DE IMAGEN:", imagePath);
 
-        return true;
+                await fs.unlink(imagePath);
+                console.log("IMAGEN ELIMINADA:", image.file_name);
+            } catch (error: any) {
+             console.error(
+                    "ERROR AL ELIMINAR IMAGEN:",
+                    image.file_name,
+                    imagePath,
+                    error
+                );
+            }
+     }
+    // 4. Devolver resultado después de procesar todas las imágenes.
+     return true;
     }
 }

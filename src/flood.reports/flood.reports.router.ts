@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authMiddleware } from "../auth/auth.middleware";
 import { requireAdmin } from "../auth/auth.require.middleware";
 import { FloodReportController } from "./flood.reports.controller";
+import { uploadFloodReportImages } from "../middleware/upload.middleware";
 
 const router = Router();
 
@@ -26,7 +27,7 @@ router.get("/user/:userId", authMiddleware, controller.getReportsByUser);
 router.get("/:id", authMiddleware, controller.getReportById);
 
 // Crear reporte
-router.post("/", authMiddleware, controller.createReport);
+router.post("/", authMiddleware, uploadFloodReportImages, controller.createReport);
 
 // Actualizar reporte
 router.put("/:id", authMiddleware, controller.updateReport);
